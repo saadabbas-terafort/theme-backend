@@ -1,0 +1,33 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Django local files
+db.sqlite3
+*.log
+.env
+.env.*
+!.env.example
+
+# Coverage and test artifacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
