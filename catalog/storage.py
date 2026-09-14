@@ -16,6 +16,3 @@ def img_upload(image_file , folder):
     file_data =image_file.read()
     supabase.storage.from_(SUPABASE_BUCKET).upload(file_path, file_data)
     return supabase.storage.from_(SUPABASE_BUCKET).get_public_url(file_path)
-        
-        
-        
