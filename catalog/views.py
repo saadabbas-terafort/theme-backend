@@ -111,7 +111,7 @@ class CoolFontListView(APIView):
         fonts = CoolFont.objects.all()
         fonts = CheckPoint.apply_list_filter(fonts, request)
         fonts = CheckPoint.apply_pagination(fonts , request)
-        skip , limit , subcategories = subcategories
+        skip , limit , fonts = fonts
 
         if isinstance(fonts , Response):
             print("Pagination Response:" , fonts.data)
