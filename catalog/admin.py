@@ -21,14 +21,67 @@ from .storage import img_upload
 class UrlUploadForm(forms.ModelForm):
     upload_fields = {}
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.base_fields = cls.base_fields.copy()
+        cls.declared_fields = cls.declared_fields.copy()
+        for upload_name, (model_field, _folder) in cls.upload_fields.items():
+            upload_field = forms.FileField(
+                required=False,
+                label=f"{model_field.replace('_', ' ').title()} file upload",
+                help_text="Choose a file to upload to Supabase. The returned URL will be saved in PostgreSQL.",
+            )
+            cls.base_fields[upload_name] = upload_field
+            cls.declared_fields[upload_name] = upload_field
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for upload_name in self.upload_fields:
-            self.fields[upload_name] = forms.FileField(required=False)
+        for upload_name, (model_field, _folder) in self.upload_fields.items():
+            url_field = self.fields[model_field]
+            url_field.required = False
+            url_field.label = f"{url_field.label} URL (saved in PostgreSQL)"
+            url_field.help_text = "This is the Supabase public URL saved in PostgreSQL."
+            self.fields[upload_name].label = (
+                f"{url_field.label.replace(' URL (saved in PostgreSQL)', '')} file upload"
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        for upload_name, (model_field, _folder) in self.upload_fields.items():
+            model_field_obj = self._meta.model._meta.get_field(model_field)
+            saved_url = cleaned_data.get(model_field)
+            uploaded_file = cleaned_data.get(upload_name)
+
+            if not model_field_obj.blank and not saved_url and not uploaded_file:
+                self.add_error(
+                    upload_name,
+                    forms.ValidationError(
+                        f"Upload a file or enter a URL for {model_field_obj.verbose_name}."
+                    ),
+                )
+        return cleaned_data
 
 
 class UrlUploadAdmin(admin.ModelAdmin):
     upload_fields = {}
+
+    def get_fields(self, request, obj=None):
+        fields = [
+            field
+            for field in super().get_fields(request, obj)
+            if not field.endswith("_upload") or field in self.upload_fields
+        ]
+        for upload_name, (model_field, _folder) in self.upload_fields.items():
+            if upload_name in fields:
+                continue
+
+            if model_field in fields:
+                field_index = fields.index(model_field)
+                fields.insert(field_index + 1, upload_name)
+            else:
+                fields.append(upload_name)
+
+        return fields
 
     def save_model(self, request, obj, form, change):
         for upload_name, (model_field, folder) in self.upload_fields.items():

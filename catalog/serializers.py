@@ -38,10 +38,11 @@ class WallpaperSerializer(serializers.ModelSerializer):
 
 
 class ThemeSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = Theme
         fields = ['id', 'name', 'category', 'subcategory', 'premium', 
-                'priority', 'created_at', 'preview_url', 'keyboard', 'wallpaper']
+                'priority', 'created_at', 'preview_url', 'keyboard', 'wallpaper' , 'theme_icons' ]
         
 class ThemeIconSerializer(serializers.ModelSerializer):
     class Meta:

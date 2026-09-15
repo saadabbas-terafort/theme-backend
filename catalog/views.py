@@ -51,13 +51,13 @@ class CheckPoint(APIView):
                 "data" : None,
                 "massage" : "skip and Limt Must be valid integer"
             } ,status=422)
-        if skip < 0 or limit < 1:
+        if skip < 0 or limit < 1 or limit > 100:
             return Response( {
                 "satus" : 422,
                 "data": None,
-                "massage" : "Skip Con't be nagative or limit must be At least  1 "
+                "massage" : "Skip Con't be nagative or limit must be At least  1 and less then 100 "
             } , status= 422)
-        return queryset[skip:skip + limit]
+        return skip , limit , queryset[skip:skip + limit]
 
 
 class CategoryListView(APIView):
@@ -65,17 +65,21 @@ class CategoryListView(APIView):
         if api_key_check := CheckPoint.check_api_key(request):
             return api_key_check
 
-        categories = Category.objects.all()
+        categories = Category.objects.prefetch_related("subcategories").all()
         categories = CheckPoint.apply_pagination(categories , request)
         if isinstance(categories, Response):
             print("Pagination Response:", categories.data)
             return categories
+        skip , limit , categories = categories
         serializer = CategorySerializer(categories, many=True)
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Categories retrieved successfully"
-        }, status=200)
+            "message": "Categories retrieved successfully" ,
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
+        },status=200)
         
 class ArtworkSubcategoryListView(APIView):
     def get(self, request, category_id):
@@ -87,11 +91,16 @@ class ArtworkSubcategoryListView(APIView):
         if isinstance(subcategories, Response):
             print("Pagination Response:", subcategories.data)
             return subcategories
+        skip , limit , subcategories = subcategories
+
         serializer = SubCategorySerializer(subcategories, many=True)
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Subcategories retrieved successfully"
+            "message": "Subcategories retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
         
@@ -101,11 +110,20 @@ class CoolFontListView(APIView):
             return api_key_check
         fonts = CoolFont.objects.all()
         fonts = CheckPoint.apply_list_filter(fonts, request)
+        fonts = CheckPoint.apply_pagination(fonts , request)
+        skip , limit , subcategories = subcategories
+
+        if isinstance(fonts , Response):
+            print("Pagination Response:" , fonts.data)
+            return fonts
         serializer = CoolFontSerializer(fonts, many=True)
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Cool fonts retrieved successfully"
+            "message": "Cool fonts retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
         
@@ -138,6 +156,8 @@ class KeyboardCategoryListView(APIView):
 
         categories = Category.objects.filter(type='keyboard')
         categories = CheckPoint.apply_pagination(categories , request)
+        skip , limit , categories = categories
+
         if isinstance(categories, Response):
             print("Pagination Response:", categories.data)
             return categories
@@ -145,7 +165,10 @@ class KeyboardCategoryListView(APIView):
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Keyboard categories retrieved successfully"
+            "message": "Keyboard categories retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
 class KeyboardSubcategoryListView(APIView):
@@ -155,6 +178,8 @@ class KeyboardSubcategoryListView(APIView):
 
         subcategories = SubCategory.objects.filter(category_id=category_id)
         subcategories = CheckPoint.apply_pagination(subcategories , request)
+        skip , limit , subcategories = subcategories
+
         if isinstance(subcategories, Response):
             print("Pagination Response:", subcategories.data)
             return subcategories
@@ -162,7 +187,11 @@ class KeyboardSubcategoryListView(APIView):
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Keyboard subcategories retrieved successfully"
+            "message": "Keyboard subcategories retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
+            
         }, status=200)
         
         
@@ -174,6 +203,8 @@ class KeyboardListView(APIView):
         keyboards = Keyboard.objects.all()
         keyboards = CheckPoint.apply_list_filter(keyboards, request)
         keyboards = CheckPoint.apply_pagination(keyboards , request)
+        skip , limit , keyboards = keyboards
+
         if isinstance(keyboards, Response):
             print("Pagination Response:", keyboards.data)
             return keyboards
@@ -181,7 +212,10 @@ class KeyboardListView(APIView):
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Keyboards retrieved successfully"
+            "message": "Keyboards retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
 class KeyboardDetailView(APIView):
@@ -213,6 +247,8 @@ class wallpaperCategoryListView(APIView):
 
         categories = Category.objects.filter(type='wallpaper')
         categories = CheckPoint.apply_pagination(categories , request)
+        skip , limit , categories = categories
+
         if isinstance(categories, Response):
             print("Pagination Response:", categories.data)
             return categories
@@ -220,7 +256,10 @@ class wallpaperCategoryListView(APIView):
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Wallpaper categories retrieved successfully"
+            "message": "Wallpaper categories retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
         
@@ -232,6 +271,8 @@ class wallpaperSubcategoryListView(APIView):
 
         subcategories = SubCategory.objects.filter(category_id=category_id)
         subcategories = CheckPoint.apply_pagination(subcategories , request)
+        skip , limit , subcategories = subcategories
+
         if isinstance(subcategories, Response):
             print("Pagination Response:", subcategories.data)
             return subcategories
@@ -239,7 +280,10 @@ class wallpaperSubcategoryListView(APIView):
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Wallpaper subcategories retrieved successfully"
+            "message": "Wallpaper subcategories retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
         
@@ -252,6 +296,8 @@ class WallpaperListView(APIView):
         wallpapers = Wallpaper.objects.all()
         wallpapers = CheckPoint.apply_list_filter(wallpapers, request)
         wallpapers = CheckPoint.apply_pagination(wallpapers , request)
+        skip , limit , wallpapers = wallpapers
+
         if isinstance(wallpapers, Response):
             print("Pagination Response:", wallpapers.data)
             return wallpapers
@@ -260,7 +306,10 @@ class WallpaperListView(APIView):
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Wallpapers retrieved successfully"
+            "message": "Wallpapers retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
 class WallpaperDetailView(APIView):
@@ -292,6 +341,8 @@ class ThemeCategoryListView(APIView):
 
         categories = Category.objects.filter(type='theme')
         categories = CheckPoint.apply_pagination(categories , request)
+        skip , limit , categories = categories
+
         if isinstance(categories, Response):
             print("Pagination Response:", categories.data)
             return categories
@@ -299,7 +350,10 @@ class ThemeCategoryListView(APIView):
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Theme categories retrieved successfully"
+            "message": "Theme categories retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
 class ThemeSubcategoryListView(APIView):
@@ -309,6 +363,8 @@ class ThemeSubcategoryListView(APIView):
 
         subcategories = SubCategory.objects.filter(category_id=category_id)
         subcategories = CheckPoint.apply_pagination(subcategories , request)
+        skip , limit , subcategories = subcategories
+
         if isinstance(subcategories, Response):
             print("Pagination Response:", subcategories.data)
             return subcategories
@@ -316,7 +372,10 @@ class ThemeSubcategoryListView(APIView):
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Theme subcategories retrieved successfully"
+            "message": "Theme subcategories retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
 class ThemeListView(APIView):
@@ -324,9 +383,11 @@ class ThemeListView(APIView):
         if api_key_check := CheckPoint.check_api_key(request):
             return api_key_check
 
-        themes = Theme.objects.all()
+        themes = Theme.objects.select_related("category","subcategory", "keyboard" , "wallpaper").prefetch_related("theme_icons").all()
         themes = CheckPoint.apply_list_filter(themes, request)
         themes = CheckPoint.apply_pagination(themes , request)
+        skip , limit , themes  = themes 
+
         if isinstance(themes, Response):
             print("Pagination Response:", themes.data)
             return themes
@@ -334,15 +395,22 @@ class ThemeListView(APIView):
         return Response({
             "status": 200,
             "data": serializer.data,
-            "message": "Themes retrieved successfully"
+            "message": "Themes retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
+# class ThemeIcons(APIView):
+#     def get(self , request):
+#         if api_key_check
+    
 class ThemeDetailView(APIView):
     def get(self, request, theme_id):
         if api_key_check := CheckPoint.check_api_key(request):
             return api_key_check
         try:
-            theme = Theme.objects.get(id=theme_id)
+            theme = Theme.objects.select_related("category", "subcategory" , "keyboard" , "wallpaper").prefetch_related("theme_icons").get(id=theme_id)
         except Theme.DoesNotExist:
             return Response({
                 "status": 404,
@@ -366,6 +434,8 @@ class DiyImageListView(APIView):
 
         diy_images = DiyImage.objects.all()
         diy_images = CheckPoint.apply_pagination(diy_images , request)
+        skip , limit , diy_images = diy_images
+
         if isinstance(diy_images, Response):
             print("Pagination Response:", diy_images.data)
             return diy_images
@@ -385,7 +455,10 @@ class DiyImageListView(APIView):
         return Response({
             "status": 200,
             "data": data,
-            "message": "DIY images retrieved successfully"
+            "message": "DIY images retrieved successfully",
+            "total": len(data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
 
@@ -424,6 +497,8 @@ class DiyKeyListView(APIView):
 
         diy_keys = DiyKey.objects.all()
         diy_keys = CheckPoint.apply_pagination(diy_keys , request)
+        skip , limit , diy_keys = diy_keys
+
         if isinstance(diy_keys, Response):
             print("Pagination Response:", diy_keys.data)
             return diy_keys
@@ -443,7 +518,10 @@ class DiyKeyListView(APIView):
         return Response({
             "status": 200,
             "data": data,
-            "message": "DIY keys retrieved successfully"
+            "message": "DIY keys retrieved successfully",
+            "total": len(serializer.data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
         
 class DiyKeyDetailView(APIView):
@@ -482,6 +560,8 @@ class DiyFontListView(APIView):
 
         diy_fonts = DiyFont.objects.all()
         diy_fonts = CheckPoint.apply_pagination(diy_fonts , request)
+        skip , limit , diy_fonts = diy_fonts
+
         if isinstance(diy_fonts, Response):
             print("Pagination Response:", diy_fonts.data)
             return diy_fonts
@@ -498,7 +578,10 @@ class DiyFontListView(APIView):
         return Response({
             "status": 200,
             "data": data,
-            "message": "DIY fonts retrieved successfully"
+            "message": "DIY fonts retrieved successfully",
+            "total": len(data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
 
 
@@ -535,6 +618,8 @@ class DiyEffectListView(APIView):
 
         diy_effects = DiyEffect.objects.all()
         diy_effects = CheckPoint.apply_pagination(diy_effects , request)
+        skip , limit , diy_effects = diy_effects
+
         if isinstance(diy_effects, Response):
             print("Pagination Response:", diy_effects.data)
             return diy_effects
@@ -552,7 +637,10 @@ class DiyEffectListView(APIView):
         return Response({
             "status": 200,
             "data": data,
-            "message": "DIY effects retrieved successfully"
+            "message": "DIY effects retrieved successfully",
+            "total": len(data),
+            "skip": skip,
+            "limit": limit,
         }, status=200)
     
 class DiyEffectDetailView(APIView):
@@ -587,10 +675,10 @@ class DiySoundListView(APIView):
         if api_key_check := CheckPoint.check_api_key(request):
             return api_key_check
         
-        
-        
         diy_sound = DiySound.objects.all()
         diy_sound = CheckPoint.apply_pagination(diy_sound , request)
+        skip , limit , diy_sound = diy_sound
+
         if isinstance(diy_sound, Response):
             print("Pagination Response:", diy_sound.data)
             return diy_sound
@@ -608,7 +696,14 @@ class DiySoundListView(APIView):
                     "created_at": diy_sounds.created_at,
     })
 
-        return Response(data)
+        return Response({
+            "status" : 200,
+            "data" : data,
+            "massage" : "DIY Sound retrieved successfully",
+            "total": len(data),
+            "skip": skip,
+            "limit": limit,
+        } , status=200)
     
     
 class DiySoundDetailView(APIView):
