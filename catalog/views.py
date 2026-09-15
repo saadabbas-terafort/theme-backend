@@ -339,7 +339,7 @@ class ThemeCategoryListView(APIView):
         if api_key_check := CheckPoint.check_api_key(request):
             return api_key_check
 
-        categories = Category.objects.filter(type='theme')
+        categories = Category.objects.prefetch_related("subcategories").filter(type='theme')
         categories = CheckPoint.apply_pagination(categories , request)
         skip , limit , categories = categories
 
