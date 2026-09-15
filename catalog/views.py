@@ -519,7 +519,7 @@ class DiyKeyListView(APIView):
             "status": 200,
             "data": data,
             "message": "DIY keys retrieved successfully",
-            "total": len(serializer.data),
+            "total": len(data),
             "skip": skip,
             "limit": limit,
         }, status=200)
