@@ -675,25 +675,25 @@ class DiySoundListView(APIView):
         if api_key_check := CheckPoint.check_api_key(request):
             return api_key_check
         
-        diy_sound = DiySound.objects.all()
-        diy_sound = CheckPoint.apply_pagination(diy_sound , request)
-        skip , limit , diy_sound = diy_sound
+        diy_sounds = DiySound.objects.all()
+        diy_sounds = CheckPoint.apply_pagination(diy_sounds , request)
+        skip , limit , diy_sounds = diy_sounds
 
-        if isinstance(diy_sound, Response):
+        if isinstance(diy_sounds, Response):
             print("Pagination Response:", diy_sound.data)
-            return diy_sound
-        print(diy_sound)            
+            return diy_sounds
+        print(diy_sounds)            
 
         data = []
         
-        for diy_sounds in diy_sound:
+        for diy_sound in diy_sounds:
             data.append({
-                    "id": diy_sounds.id,
-                    "name": diy_sounds.name,
-                    "sound_file" : diy_sounds.sound_file,
-                    "preview_url": diy_sounds.preview_url,
-                    "priority": diy_sounds.priority,
-                    "created_at": diy_sounds.created_at,
+                    "id": diy_sound.id,
+                    "name": diy_sound.name,
+                    "sound_file" : diy_sound.sound_file,
+                    "preview_url": diy_sound.preview_url,
+                    "priority": diy_sound.priority,
+                    "created_at": diy_sound.created_at,
     })
 
         return Response({
