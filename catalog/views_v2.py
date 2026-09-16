@@ -73,7 +73,7 @@ class CheckPointV2(APIView):
                 if str(item.get("subcategory")) == str(subcategory_id) ]
             elif category_id:
                 items = [ item for item in items
-                if str(item.get("category")) == str(subcategory_id)
+                if str(item.get("category")) == str(category_id)
                 and item.get("subcategory") is None ]
     
             if premium_only and premium_only.lower()== "true":
@@ -106,7 +106,7 @@ class CategoryListViewV2(APIView):
                 "status": 200,
                 "data": paginated_data,
                 'massage': "Categories retrived Successfully",
-                "total":len(data),
+                "total":len(paginated_data),
                 "skip": skip,
                 "limit" : limit ,
             } , status=200)
