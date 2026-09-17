@@ -151,6 +151,7 @@ class CoolFontListViewV2(APIView):
                 categories = CoolFont.objects.all()
                 serializer = CoolFontSerializer(categories , many=True)
                 data = serializer.data
+                print(f"setting cache to cache_key: {cache_key}")
                 cache.set(cache_key , {"data": data} , timeout=300)
         else:
             data = cached_categories["data"]
@@ -173,24 +174,40 @@ class ArtworkDetailViewV2(APIView):
         if api_key_check :=CheckPointV2.check_api_key(request):
             return api_key_check
         
-        cache_key =f"mobile_theme_coolfont_{artwork_id}"
-        cached_categories = cache.get(cache_key)
-                # print(cached_categories)
-        if cached_categories is  None:
-            try:
+        cache_key = "mobile_theme_coolfont"
+        cached_coolfont = cache.get(cache_key)
+
+        if cached_coolfont  is not None:
+            data = cached_coolfont ["data"]
+
+            # Find requested CoolFont inside cached list
+            for item in data:
+                if str(item["id"]) == str(artwork_id):
+                    return Response({
+                        "status": 200,
+                        "data": item,
+                        "massage": "CoolFont retrieved Successfully",
+                    }, status=200)
+
+            # ID was not found in cache
+            return Response({
+                "status": 404,
+                "data": None,
+                "message": "CoolFont not found",
+            }, status=404)
+            
+        try:
                 category = CoolFont.objects.get(id=artwork_id)
-            except CoolFont.DoesNotExist:
+        except CoolFont.DoesNotExist:
                 return Response({
                 "status": 404,
                 "data": None,
                 "message": "CoolFont not found"
             }, status=404)
-            serializer = CoolFontSerializer(category )
-            data = serializer.data
-            cache.set(cache_key , {"data": data} , timeout=300)
-        else:
-            data = cached_categories["data"]
-    
+        serializer = CoolFontSerializer(category )
+        data = serializer.data
+        cache.set(cache_key, {"status": 200,"data": [data]})
+        # print(f"setting cache to cache_key: {cache_key}")
         return Response({
                 "status": 200,
                 "data": data,
@@ -290,24 +307,37 @@ class KeyboardDetailViewV2(APIView):
         if api_key_check :=CheckPointV2.check_api_key(request):
             return api_key_check
         
-        cache_key =f"mobile_theme_keyboard_{keyboard_id}"
-        cached_keyboard = cache.get(cache_key)
-                # print(cached_keyboard)
-        if cached_keyboard is  None:
-            try:
-                keyboard = Keyboard.objects.get(id=keyboard_id)
-            except Keyboard.DoesNotExist:
+        cache_key = "mobile_theme_keyboard"
+        cached_Keyboard = cache.get(cache_key)
+
+        if cached_Keyboard is not None:
+            data = cached_Keyboard["data"]
+
+            for item in data:
+                if str(item["id"]) == str(keyboard_id):
+                    return Response({
+                        "status": 200,
+                        "data": item,
+                        "massage": "Keyboard retrieved Successfully",
+                    }, status=200)
+
+            # ID was not found in cache
+            return Response({
+                "status": 404,
+                "data": None,
+                "message": "Keyboard not found",
+            }, status=404)
+        try:
+            keyboard = Keyboard.objects.get(id=keyboard_id)
+        except Keyboard.DoesNotExist:
                 return Response({
                 "status": 404,
                 "data": None,
-                "message": "CoolFont not found"
+                "message": "Keyboard not found"
             }, status=404)
-            serializer = KeyboardSerializer(keyboard)
-            data = serializer.data
-            cache.set(cache_key , {"data": data} , timeout=300)
-        else:
-            data = cached_keyboard["data"]
-    
+        serializer = KeyboardSerializer(keyboard)
+        data = serializer.data
+        cache.set(cache_key, {"status": 200,"data": [data]})
         return Response({
                 "status": 200,
                 "data": data,
@@ -404,24 +434,37 @@ class WallpaperDetailViewV2(APIView):
         if api_key_check :=CheckPointV2.check_api_key(request):
             return api_key_check
         
-        cache_key =f"mobile_theme_wallpaper_{wallpaper_id}"
+        cache_key = "mobile_theme_wallpaper"
         cached_wallpaper = cache.get(cache_key)
-                # print(cached_keyboard)
-        if cached_wallpaper is  None:
-            try:
-                keyboard = Wallpaper.objects.get(id=wallpaper_id)
-            except Wallpaper.DoesNotExist:
+
+        if cached_wallpaper is not None:
+            data = cached_wallpaper["data"]
+
+            for item in data:
+                if str(item["id"]) == str(wallpaper_id):
+                    return Response({
+                        "status": 200,
+                        "data": item,
+                        "massage": "Wallpaper trieved Successfully",
+                    }, status=200)
+
+            # ID was not found in cache
+            return Response({
+                "status": 404,
+                "data": None,
+                "message": "wallpaper not found",
+            }, status=404)
+        try:
+            keyboard = Wallpaper.objects.get(id=wallpaper_id)
+        except Wallpaper.DoesNotExist:
                 return Response({
                 "status": 404,
                 "data": None,
-                "message": "wallpaperFont not found"
+                "message": "wallpaper not found"
             }, status=404)
-            serializer = WallpaperSerializer(keyboard)
-            data = serializer.data
-            cache.set(cache_key , {"data": data} , timeout=300)
-        else:
-            data = cached_wallpaper["data"]
-    
+        serializer = WallpaperSerializer(keyboard)
+        data = serializer.data
+        cache.set(cache_key, {"status": 200,"data": [data]})
         return Response({
                 "status": 200,
                 "data": data,
@@ -437,7 +480,7 @@ class ThemeCategoryListViewV2(APIView):
         cached_theme = cache.get(cache_key)
         # print(cached_keyboard)
         if cached_theme is  None:
-            theme = Category.objects.filter(type='theme')
+            theme = Category.objects.prefetch_related("subcategories").filter(type='theme')
             serializer = CategorySerializer(theme , many=True)
             data = serializer.data
             cache.set(cache_key , {"data": data} , timeout=300)
@@ -494,7 +537,7 @@ class ThemeListViewV2(APIView):
         cached_theme = cache.get(cache_key)
             # print(cached_categories)
         if cached_theme is  None:
-                theme = Theme.objects.all()
+                theme = Theme.objects.select_related("category","subcategory", "keyboard" , "wallpaper").prefetch_related("theme_icons").all()
                 serializer = ThemeSerializer(theme , many=True)
                 data = serializer.data
                 cache.set(cache_key , {"data": data} , timeout=300)
@@ -519,24 +562,37 @@ class ThemeDetailViewV2(APIView):
         if api_key_check :=CheckPointV2.check_api_key(request):
             return api_key_check
         
-        cache_key =f"mobile_theme_theme_{theme_id}"
+        cache_key = "mobile_theme_theme"
         cached_theme = cache.get(cache_key)
-                # print(cached_keyboard)
-        if cached_theme is  None:
-            try:
-                keyboard = Theme.objects.get(id=theme_id)
-            except Theme.DoesNotExist:
+
+        if cached_theme is not None:
+            data = cached_theme["data"]
+
+            for item in data:
+                if str(item["id"]) == str(theme_id):
+                    return Response({
+                        "status": 200,
+                        "data": item,
+                        "massage": "theme retrieved Successfully",
+                    }, status=200)
+
+            # ID was not found in cache
+            return Response({
+                "status": 404,
+                "data": None,
+                "message": "theme not found",
+            }, status=404)
+        try:
+            keyboard = Theme.objects.get(id=theme_id)
+        except Theme.DoesNotExist:
                 return Response({
                 "status": 404,
                 "data": None,
                 "message": "Theme not found"
             }, status=404)
-            serializer = ThemeSerializer(keyboard)
-            data = serializer.data
-            cache.set(cache_key , {"data": data} , timeout=300)
-        else:
-            data = cached_theme["data"]
-    
+        serializer = ThemeSerializer(keyboard)
+        data = serializer.data
+        cache.set(cache_key, {"status": 200,"data": [data]})
         return Response({
                 "status": 200,
                 "data": data,
@@ -587,18 +643,35 @@ class DiyImageDetailViewV2(APIView):
         if api_key_check :=CheckPointV2.check_api_key(request):
             return api_key_check
         
-        cache_key =f"mobile_theme_diyimage_{image_id}"
-        cached_diyimage = cache.get(cache_key)
-        if cached_diyimage is  None:
-            try:
-                diy_image = DiyImage.objects.get(id=image_id)
-            except DiyImage.DoesNotExist:
+        cache_key = "mobile_theme_diyimage"
+        cached_image = cache.get(cache_key)
+
+        if cached_image is not None:
+            data = cached_image["data"]
+
+            for item in data:
+                if str(item["id"]) == str(image_id):
+                    return Response({
+                        "status": 200,
+                        "data": item,
+                        "massage": "image retrieved Successfully",
+                    }, status=200)
+
+            # ID was not found in cache
+            return Response({
+                "status": 404,
+                "data": None,
+                "message": "image not found",
+            }, status=404)
+        try:
+            diy_image = DiyImage.objects.get(id=image_id)
+        except DiyImage.DoesNotExist:
                 return Response({
                 "status": 404,
                 "data": None,
                 "message": "Diy Image not found"
             }, status=404)
-            data = {
+        data = {
                             "id": diy_image.id,
                             "name": diy_image.name,
                             "image_url": diy_image.image_url,
@@ -607,10 +680,7 @@ class DiyImageDetailViewV2(APIView):
                             "priority": diy_image.priority,
                             "created_at": diy_image.created_at
                                     }
-            cache.set(cache_key , {"data": data} , timeout=300)
-        else:
-            data = cached_diyimage["data"]
-    
+        cache.set(cache_key, {"status": 200,"data": [data]})
         return Response({
                 "status": 200,
                 "data": data,
@@ -661,18 +731,35 @@ class DiyKeyDetailViewV2(APIView):
         if api_key_check :=CheckPointV2.check_api_key(request):
             return api_key_check
         
-        cache_key =f"mobile_theme_diykey_{key_id}"
-        cached_diykey = cache.get(cache_key)
-        if cached_diykey is  None:
-            try:
-                diy_key = DiyKey.objects.get(id=key_id)
-            except DiyKey.DoesNotExist:
+        cache_key = "mobile_theme_diykey"
+        cached_key = cache.get(cache_key)
+
+        if cached_key is not None:
+            data = cached_key["data"]
+
+            for item in data:
+                if str(item["id"]) == str(key_id):
+                    return Response({
+                        "status": 200,
+                        "data": item,
+                        "massage": "key retrieved Successfully",
+                    }, status=200)
+
+            # ID was not found in cache
+            return Response({
+                "status": 404,
+                "data": None,
+                "message": "key not found",
+            }, status=404)
+        try:
+            diy_key = DiyKey.objects.get(id=key_id)
+        except DiyKey.DoesNotExist:
                 return Response({
                 "status": 404,
                 "data": None,
                 "message": "Diy Key not found"
             }, status=404)
-            data = {
+        data = {
                             "id": diy_key.id,
                             "name": diy_key.name,
                             "image_url": diy_key.image_url,
@@ -681,10 +768,7 @@ class DiyKeyDetailViewV2(APIView):
                             "priority": diy_key.priority,
                             "created_at": diy_key.created_at
                                     }
-            cache.set(cache_key , {"data": data} , timeout=300)
-        else:
-            data = cached_diykey["data"]
-    
+        cache.set(cache_key, {"status": 200,"data": [data]})
         return Response({
                 "status": 200,
                 "data": data,
@@ -732,28 +816,43 @@ class DiyFontDetailViewV2(APIView):
         if api_key_check :=CheckPointV2.check_api_key(request):
             return api_key_check
         
-        cache_key =f"mobile_theme_diyfont_{font_id}"
-        cached_diyfont = cache.get(cache_key)
-        if cached_diyfont is  None:
-            try:
-                diy_font = DiyFont.objects.get(id=font_id)
-            except DiyFont.DoesNotExist:
+        cache_key = "mobile_theme_diyfont"
+        cached_font = cache.get(cache_key)
+
+        if cached_font is not None:
+            data = cached_font["data"]
+
+            for item in data:
+                if str(item["id"]) == str(font_id):
+                    return Response({
+                        "status": 200,
+                        "data": item,
+                        "massage": "diyfont retrieved Successfully",
+                    }, status=200)
+
+            # ID was not found in cache
+            return Response({
+                "status": 404,
+                "data": None,
+                "message": "Diy font not found",
+            }, status=404)
+        try:
+            diy_font = DiyFont.objects.get(id=font_id)
+        except DiyFont.DoesNotExist:
                 return Response({
                 "status": 404,
                 "data": None,
                 "message": "Diy Font not found"
             }, status=404)
-            data = {
+        data = {
                             "id": diy_font.id,
                             "name": diy_font.name,
                             "font_file": diy_font.font_file,
                             "priority": diy_font.priority,
                             "created_at": diy_font.created_at
                                     }
-            cache.set(cache_key , {"data": data} , timeout=300)
-        else:
-            data = cached_diyfont["data"]
-    
+        cache.set(cache_key, {"status": 200,"data": [data]})
+
         return Response({
                 "status": 200,
                 "data": data,
@@ -801,18 +900,35 @@ class DiyEffectDetailViewV2(APIView):
         if api_key_check :=CheckPointV2.check_api_key(request):
             return api_key_check
         
-        cache_key =f"mobile_theme_diyeffect_{effect_id}"
+        cache_key = "mobile_theme_diyeffect"
         cached_diyeffect = cache.get(cache_key)
-        if cached_diyeffect is  None:
-            try:
-                diy_effect = DiyEffect.objects.get(id=effect_id)
-            except DiyEffect.DoesNotExist:
+
+        if cached_diyeffect is not None:
+            data = cached_diyeffect["data"]
+
+            for item in data:
+                if str(item["id"]) == str(effect_id):
+                    return Response({
+                        "status": 200,
+                        "data": item,
+                        "massage": "diyeffect retrieved Successfully",
+                    }, status=200)
+
+            # ID was not found in cache
+            return Response({
+                "status": 404,
+                "data": None,
+                "message": "key not found",
+            }, status=404)
+        try:
+            diy_effect = DiyEffect.objects.get(id=effect_id)
+        except DiyEffect.DoesNotExist:
                 return Response({
                 "status": 404,
                 "data": None,
-                "message": "Diy Effect not found"
+                "message": "diyeffect not found"
             }, status=404)
-            data ={
+        data ={
             "id": diy_effect.id,
             "name": diy_effect.name,
             "gif_url": diy_effect.gif_url,
@@ -820,10 +936,7 @@ class DiyEffectDetailViewV2(APIView):
             "priority": diy_effect.priority,
             "created_at": diy_effect.created_at
         }
-            cache.set(cache_key , {"data": data} , timeout=300)
-        else:
-            data = cached_diyeffect["data"]
-    
+        cache.set(cache_key, {"status": 200,"data": [data]})
         return Response({
                 "status": 200,
                 "data": data,
@@ -869,18 +982,35 @@ class DiySoundDetailViewV2(APIView):
         if api_key_check :=CheckPointV2.check_api_key(request):
             return api_key_check
         
-        cache_key =f"mobile_theme_diysound_{sound_id}"
-        cached_diysound = cache.get(cache_key)
-        if cached_diysound is  None:
-            try:
-                diy_sound = DiySound.objects.get(id=sound_id)
-            except DiySound.DoesNotExist:
+        cache_key = "mobile_theme_diysound"
+        cached_sound = cache.get(cache_key)
+
+        if cached_sound is not None:
+            data = cached_sound["data"]
+
+            for item in data:
+                if str(item["id"]) == str(sound_id):
+                    return Response({
+                        "status": 200,
+                        "data": item,
+                        "massage": " Diy sound retrieved Successfully",
+                    }, status=200)
+
+            # ID was not found in cache
+            return Response({
+                "status": 404,
+                "data": None,
+                "message": " Diy sound not found",
+            }, status=404)
+        try:
+            diy_sound = DiySound.objects.get(id=sound_id)
+        except DiySound.DoesNotExist:
                 return Response({
                 "status": 404,
                 "data": None,
                 "message": "Diy Sound not found"
             }, status=404)
-            data = {
+        data = {
             "id": diy_sound.id,
             "name": diy_sound.name,
             "sound_file" : diy_sound.sound_file,
@@ -889,10 +1019,7 @@ class DiySoundDetailViewV2(APIView):
             "created_at": diy_sound.created_at,
             
         }
-            cache.set(cache_key , {"data": data} , timeout=300)
-        else:
-            data = cached_diysound["data"]
-    
+        cache.set(cache_key, {"status": 200,"data": [data]})
         return Response({
                 "status": 200,
                 "data": data,

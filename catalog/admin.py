@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin
 
+from .cache import invalidate_instance_cache, invalidate_instances_cache
 from .models import (
     Category,
     CoolFont,
@@ -16,6 +17,27 @@ from .models import (
     Wallpaper,
 )
 from .storage import img_upload
+
+
+class CacheInvalidationAdmin(admin.ModelAdmin):
+    def save_model(self, request, obj, form, change):
+        old_obj = None
+        if change and obj.pk:
+            old_obj = obj.__class__.objects.filter(pk=obj.pk).first()
+
+        if old_obj:
+            invalidate_instance_cache(old_obj, include_related=True)
+
+        super().save_model(request, obj, form, change)
+        invalidate_instance_cache(obj)
+
+    def delete_model(self, request, obj):
+        invalidate_instance_cache(obj, include_related=True)
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        invalidate_instances_cache(queryset, include_related=True)
+        super().delete_queryset(request, queryset)
 
 
 class UrlUploadForm(forms.ModelForm):
@@ -62,7 +84,7 @@ class UrlUploadForm(forms.ModelForm):
         return cleaned_data
 
 
-class UrlUploadAdmin(admin.ModelAdmin):
+class UrlUploadAdmin(CacheInvalidationAdmin):
     upload_fields = {}
 
     def get_fields(self, request, obj=None):
